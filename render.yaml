@@ -1,0 +1,29 @@
+services:
+  # Backend API Service
+  - type: web
+    name: portfolio-terminal-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run install-server
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+
+  # Frontend Web Service
+  - type: web
+    name: portfolio-terminal-web
+    env: static
+    region: oregon
+    buildCommand: npm install && npm run install-client && npm run build-client
+    staticPublishPath: ./client/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://portfolio-terminal-api.onrender.com/api

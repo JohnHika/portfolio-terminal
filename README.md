@@ -29,6 +29,14 @@ A unique, interactive portfolio website built as a terminal interface. Experienc
 - `joke` - Get random developer jokes
 - `theme [name]` - Switch between terminal themes
 
+## 🚀 Deployment
+
+### Deploying to Render
+
+This project is set up for easy deployment to Render.com using the `render.yaml` configuration file. You can deploy both the frontend and backend with just a few clicks.
+
+See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
+
 ### 📈 Analytics & Admin
 - **Command Tracking**: Analytics for popular commands and usage patterns
 - **Admin Panel**: JWT-authenticated admin interface for content management

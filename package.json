@@ -1,0 +1,27 @@
+{
+  "name": "portfolio-terminal",
+  "version": "1.0.0",
+  "description": "Terminal-style portfolio application",
+  "main": "index.js",
+  "scripts": {
+    "install-client": "cd client && npm install",
+    "install-server": "cd server && npm install",
+    "install": "npm run install-client && npm run install-server",
+    "build-client": "cd client && npm run build",
+    "start-server": "cd server && npm start",
+    "start": "npm run start-server",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+    "seed": "cd server && npm run seed"
+  },
+  "keywords": [
+    "portfolio",
+    "terminal",
+    "react",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
