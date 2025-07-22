@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Full Stack Development",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"cd server && npm run dev & cd ../client && npm start"
+			],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
