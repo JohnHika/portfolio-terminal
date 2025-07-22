@@ -208,10 +208,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-- **Email**: john@example.com
-- **LinkedIn**: [linkedin.com/in/johndoe](https://linkedin.com/in/johndoe)
+- **Email**: johnkimani576@gmail.com
+- **LinkedIn**: [linkedin.com/in/john-hika-22890a24b/](https://www.linkedin.com/in/john-hika-22890a24b/)
 - **GitHub**: [github.com/JohnHika](https://github.com/JohnHika)
-- **Portfolio**: [johndoe.dev](https://johndoe.dev)
+- **Portfolio**: [TBU](TBU)
 
 ---
 
