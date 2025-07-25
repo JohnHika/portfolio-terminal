@@ -1120,30 +1120,46 @@ Coming soon: Fully playable Snake game right in the terminal!
           `;
         }
 
+        // Store entries for easy reference by index
+        this.pendingEntries = response.data.filter(entry => !entry.approved);
+        
+        if (this.pendingEntries.length === 0) {
+          return `
+<div style="color: var(--accent-color); font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">📖 Guestbook Admin</div>
+<div style="color: var(--text-color);">No pending guestbook entries found.</div>
+<div style="color: #888; margin-top: 10px;">All entries have been reviewed.</div>
+          `;
+        }
+
         let output = `
 <div style="color: var(--accent-color); font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">📖 Guestbook Admin</div>
 
 <div style="margin-bottom: 10px;">
   <div style="color: var(--prompt-color);">Commands:</div>
   <div style="margin-left: 10px; color: var(--text-color); font-size: 14px;">
-    • admin guestbook approve [id] - Approve an entry<br/>
-    • admin guestbook reject [id] - Reject an entry
+    • <span style="color: var(--accent-color);">admin guestbook approve [number]</span> - Approve entry by number<br/>
+    • <span style="color: var(--accent-color);">admin guestbook reject [number]</span> - Reject entry by number<br/>
+    • <span style="color: var(--accent-color);">admin guestbook all</span> - Show all entries (approved & pending)
   </div>
 </div>
 
-<div style="color: var(--prompt-color); margin: 15px 0 10px 0;">Pending Entries:</div>
+<div style="color: var(--prompt-color); margin: 15px 0 10px 0;">Pending Entries (${this.pendingEntries.length}):</div>
         `;
 
-        response.data.filter(entry => !entry.approved).forEach(entry => {
+        this.pendingEntries.forEach((entry, index) => {
           const date = new Date(entry.createdAt).toLocaleDateString();
+          const number = index + 1;
           output += `
 <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--prompt-color); border-radius: 3px; background: rgba(255, 255, 255, 0.05);">
-  <div style="color: var(--accent-color); font-weight: bold;">${entry.name}</div>
-  <div style="color: #888; font-size: 12px; margin-bottom: 5px;">ID: ${entry._id} • ${date}</div>
-  <div style="margin-bottom: 10px;">${entry.message}</div>
-  <div>
-    <span style="color: #55ff55; cursor: pointer;" onclick="void(0)">approve</span> | 
-    <span style="color: #ff5555; cursor: pointer;" onclick="void(0)">reject</span>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+    <div style="color: var(--accent-color); font-weight: bold;">#${number} - ${entry.name}</div>
+    <div style="color: #888; font-size: 12px;">${date}</div>
+  </div>
+  <div style="color: #888; font-size: 12px; margin-bottom: 8px;">${entry.email || 'No email'}</div>
+  <div style="margin-bottom: 10px; line-height: 1.4;">${entry.message}</div>
+  <div style="font-size: 12px; color: #666;">
+    Use: <span style="color: #55ff55;">admin guestbook approve ${number}</span> | 
+    <span style="color: #ff5555;">admin guestbook reject ${number}</span>
   </div>
 </div>
           `;
@@ -1152,26 +1168,108 @@ Coming soon: Fully playable Snake game right in the terminal!
         return output;
       }
       
-      // Handle approve/reject
+      // Show all entries (approved and pending)
+      if (args[0] === 'all') {
+        const config = { headers: { Authorization: `Bearer ${this.adminToken}` } };
+        const response = await axios.get(`${this.apiBase}/admin/guestbook`, config);
+        
+        if (!response.data || response.data.length === 0) {
+          return `
+<div style="color: var(--accent-color); font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">📖 All Guestbook Entries</div>
+<div style="color: var(--text-color);">No guestbook entries found.</div>
+          `;
+        }
+
+        let output = `
+<div style="color: var(--accent-color); font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">📖 All Guestbook Entries</div>
+<div style="margin-bottom: 15px;">
+  <div style="color: var(--prompt-color);">Total: ${response.data.length} entries</div>
+  <div style="color: #888; font-size: 12px;">✅ Approved: ${response.data.filter(e => e.approved).length} | ⏳ Pending: ${response.data.filter(e => !e.approved).length}</div>
+</div>
+        `;
+
+        response.data.forEach((entry, index) => {
+          const date = new Date(entry.createdAt).toLocaleDateString();
+          const status = entry.approved ? '✅ Approved' : '⏳ Pending';
+          const statusColor = entry.approved ? '#55ff55' : '#ffaa00';
+          
+          output += `
+<div style="margin-bottom: 10px; padding: 8px; border: 1px solid ${entry.approved ? '#55ff55' : '#ffaa00'}; border-radius: 3px; background: rgba(255, 255, 255, 0.02);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+    <div style="color: var(--accent-color); font-weight: bold;">${entry.name}</div>
+    <div style="color: ${statusColor}; font-size: 12px;">${status}</div>
+  </div>
+  <div style="color: #888; font-size: 11px; margin-bottom: 5px;">${date} • ${entry.email || 'No email'}</div>
+  <div style="font-size: 13px; line-height: 1.3;">${entry.message}</div>
+</div>
+          `;
+        });
+
+        return output;
+      }
+      
+      // Handle approve/reject by number
       if ((args[0] === 'approve' || args[0] === 'reject') && args.length > 1) {
         const action = args[0];
-        const id = args[1];
+        const number = parseInt(args[1]);
+        
+        if (isNaN(number) || number < 1) {
+          return `
+<div style="color: #ff5555;">❌ Invalid entry number: ${args[1]}</div>
+<div style="color: var(--text-color); margin-top: 5px;">Please use a valid number from the list. Type 'admin guestbook' to see entries.</div>
+          `;
+        }
+        
+        // Check if we have pending entries cached
+        if (!this.pendingEntries || this.pendingEntries.length === 0) {
+          return `
+<div style="color: #ff5555;">❌ No entries loaded</div>
+<div style="color: var(--text-color); margin-top: 5px;">Please run 'admin guestbook' first to load entries.</div>
+          `;
+        }
+        
+        // Check if number is valid
+        if (number > this.pendingEntries.length) {
+          return `
+<div style="color: #ff5555;">❌ Entry #${number} not found</div>
+<div style="color: var(--text-color); margin-top: 5px;">Valid entries are #1 to #${this.pendingEntries.length}. Type 'admin guestbook' to see the list.</div>
+          `;
+        }
+        
+        const entry = this.pendingEntries[number - 1];
         const approved = action === 'approve';
         
-        const config = { headers: { Authorization: `Bearer ${this.adminToken}` } };
-        await axios.patch(`${this.apiBase}/guestbook/${id}/approve`, { approved }, config);
-        
-        return `
+        try {
+          const config = { headers: { Authorization: `Bearer ${this.adminToken}` } };
+          await axios.patch(`${this.apiBase}/guestbook/${entry._id}/approve`, { approved }, config);
+          
+          // Remove from pending list since it's been processed
+          this.pendingEntries.splice(number - 1, 1);
+          
+          return `
 <div style="color: ${approved ? '#55ff55' : '#ff5555'}; margin-bottom: 10px;">
-  ✅ Entry ${approved ? 'approved' : 'rejected'} successfully!
+  ${approved ? '✅' : '❌'} Entry #${number} by "${entry.name}" ${approved ? 'approved' : 'rejected'} successfully!
 </div>
-<div style="color: var(--text-color);">Type 'admin guestbook' to manage more entries.</div>
-        `;
+<div style="color: var(--text-color);">Remaining pending entries: ${this.pendingEntries.length}</div>
+<div style="color: #888; margin-top: 5px;">Type 'admin guestbook' to manage more entries.</div>
+          `;
+        } catch (apiError) {
+          return `
+<div style="color: #ff5555; margin-bottom: 10px;">❌ Failed to ${action} entry</div>
+<div style="color: var(--text-color);">${apiError.response?.data?.error || apiError.message}</div>
+          `;
+        }
       }
       
       return `
-<div style="color: #ff5555;">Unknown guestbook command: ${args.join(' ')}</div>
-<div style="color: var(--text-color); margin-top: 5px;">Usage: admin guestbook [list|approve|reject]</div>
+<div style="color: #ff5555;">❌ Unknown guestbook command: ${args.join(' ')}</div>
+<div style="color: var(--text-color); margin-top: 10px;">Available commands:</div>
+<div style="margin-left: 10px; color: var(--text-color); font-size: 14px;">
+  • <span style="color: var(--accent-color);">admin guestbook</span> - List pending entries<br/>
+  • <span style="color: var(--accent-color);">admin guestbook all</span> - Show all entries<br/>
+  • <span style="color: var(--accent-color);">admin guestbook approve [number]</span> - Approve entry<br/>
+  • <span style="color: var(--accent-color);">admin guestbook reject [number]</span> - Reject entry
+</div>
       `;
     } catch (error) {
       console.error('Admin guestbook error:', error);
@@ -1185,30 +1283,20 @@ Coming soon: Fully playable Snake game right in the terminal!
   async adminAnalytics(args) {
     try {
       const config = { headers: { Authorization: `Bearer ${this.adminToken}` } };
-      const response = await axios.get(`${this.apiBase}/analytics`, config);
+      const response = await axios.get(`${this.apiBase}/analytics/commands`, config);
       
-      if (!response.data) {
+      if (!response.data || !response.data.commandStats) {
         return `<div style="color: #ff5555;">Failed to retrieve analytics data.</div>`;
       }
       
-      // Group by command and count
-      const commandCounts = {};
-      response.data.forEach(item => {
-        if (!commandCounts[item.command]) {
-          commandCounts[item.command] = 0;
-        }
-        commandCounts[item.command]++;
-      });
-      
-      // Sort by count (descending)
-      const sortedCommands = Object.entries(commandCounts)
-        .sort((a, b) => b[1] - a[1]);
+      const { commandStats, totalCommands, recentActivity } = response.data;
       
       let output = `
 <div style="color: var(--accent-color); font-size: clamp(16px, 4vw, 18px); margin-bottom: 15px;">📊 Command Usage Analytics</div>
 
 <div style="margin-bottom: 20px;">
-  <div style="color: var(--prompt-color); margin-bottom: 10px;">Total Commands Tracked: ${response.data.length}</div>
+  <div style="color: var(--prompt-color); margin-bottom: 10px;">Total Commands Tracked: ${totalCommands}</div>
+  <div style="color: var(--text-color); margin-bottom: 15px;">Recent Activity (24h): ${recentActivity.length} commands</div>
   
   <table style="width: 100%; border-collapse: collapse;">
     <tr>
@@ -1218,12 +1306,12 @@ Coming soon: Fully playable Snake game right in the terminal!
     </tr>
       `;
       
-      sortedCommands.forEach(([command, count]) => {
-        const percentage = ((count / response.data.length) * 100).toFixed(1);
+      commandStats.forEach(stat => {
+        const percentage = ((stat.count / totalCommands) * 100).toFixed(1);
         output += `
     <tr>
-      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${command}</td>
-      <td style="text-align: right; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${count}</td>
+      <td style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${stat._id}</td>
+      <td style="text-align: right; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${stat.count}</td>
       <td style="text-align: right; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">${percentage}%</td>
     </tr>
         `;
